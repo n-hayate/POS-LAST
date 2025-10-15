@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -18,27 +19,16 @@ jobs:
         with:
           python-version: '3.12'
       
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
       - name: Create deployment package
         run: |
           mkdir -p deploy
-          # 必要なファイルのみコピー
+          
+          # アプリケーションファイルをコピー
           cp main.py deploy/
-          cp database.py deploy/
-          cp models.py deploy/
           cp requirements.txt deploy/
           
-          # 不要なファイルを除外
-          # .git, .github, __pycache__, .pyc, .pem ファイルは除外
-      
-      - name: Create .deployment file
-        run: |
-          echo "[config]" > deploy/.deployment
-          echo "SCM_DO_BUILD_DURING_DEPLOYMENT = false" >> deploy/.deployment
+          # database.py と models.py が不要ならコピー不要
+          # （main.py に統合されているため）
       
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
