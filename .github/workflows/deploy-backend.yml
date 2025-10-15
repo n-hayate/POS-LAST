@@ -26,9 +26,19 @@ jobs:
       - name: Create deployment package
         run: |
           mkdir -p deploy
-          cp -r . deploy/
-          cd deploy
-          rm -rf .git .github __pycache__ *.pyc
+          # 必要なファイルのみコピー
+          cp main.py deploy/
+          cp database.py deploy/
+          cp models.py deploy/
+          cp requirements.txt deploy/
+          
+          # 不要なファイルを除外
+          # .git, .github, __pycache__, .pyc, .pem ファイルは除外
+      
+      - name: Create .deployment file
+        run: |
+          echo "[config]" > deploy/.deployment
+          echo "SCM_DO_BUILD_DURING_DEPLOYMENT = false" >> deploy/.deployment
       
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -36,23 +46,3 @@ jobs:
           app-name: 'app-002-gen10-step3-1-py-oshima42'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./deploy
-```
-
----
-
-## ✅ Azure側の設定確認
-
-### Frontend App の設定
-```
-Azure Portal
-  → app-002-gen10-step3-1-node-oshima42
-  → 構成 → アプリケーション設定
-```
-
-**必須設定:**
-- `NEXT_PUBLIC_API_URL` = `https://app-002-gen10-step3-1-py-oshima42.azurewebsites.net`
-- `SCM_DO_BUILD_DURING_DEPLOYMENT` = **削除** (重要！)
-
-**スタートアップコマンド:**
-```
-構成 → 全般設定 → スタートアップコマンド
