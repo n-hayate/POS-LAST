@@ -1,0 +1,58 @@
+name: Deploy Backend to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r . deploy/
+          cd deploy
+          rm -rf .git .github __pycache__ *.pyc
+      
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'app-002-gen10-step3-1-py-oshima42'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./deploy
+```
+
+---
+
+## ✅ Azure側の設定確認
+
+### Frontend App の設定
+```
+Azure Portal
+  → app-002-gen10-step3-1-node-oshima42
+  → 構成 → アプリケーション設定
+```
+
+**必須設定:**
+- `NEXT_PUBLIC_API_URL` = `https://app-002-gen10-step3-1-py-oshima42.azurewebsites.net`
+- `SCM_DO_BUILD_DURING_DEPLOYMENT` = **削除** (重要！)
+
+**スタートアップコマンド:**
+```
+構成 → 全般設定 → スタートアップコマンド
