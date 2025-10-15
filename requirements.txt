@@ -1,4 +1,5 @@
-fastapi
-uvicorn[standard]
-PyMySQL
-python-dotenv
+fastapi==0.119.0
+uvicorn[standard]==0.37.0
+PyMySQL==1.1.2
+python-dotenv==1.1.1
+gunicorn==23.0.0
