@@ -17,10 +17,10 @@ from pydantic import BaseModel, Field
 # ==================== Configuration ====================
 class Config:
     """環境変数から設定を読み込む"""
-    DB_HOST = os.environ.get("DB_HOST")
-    DB_USER = os.environ.get("DB_USER")
-    DB_PASSWORD = os.environ.get("DB_PASSWORD")
-    DB_NAME = os.environ.get("DB_NAME")
+    DB_HOST = os.environ.get("DB_HOST", "")
+    DB_USER = os.environ.get("DB_USER", "")
+    DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+    DB_NAME = os.environ.get("DB_NAME", "")
     DB_PORT = int(os.environ.get("DB_PORT", 3306))
     
     ALLOWED_ORIGINS = [
@@ -28,14 +28,6 @@ class Config:
         "https://localhost:3000",
         "https://app-002-gen10-step3-1-node-oshima42.azurewebsites.net",
     ]
-    
-    @classmethod
-    def validate(cls):
-        """必須設定の検証"""
-        required = ["DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
-        missing = [key for key in required if not getattr(cls, key)]
-        if missing:
-            raise ValueError(f"Missing required environment variables: {missing}")
 
 
 # ==================== Pydantic Models ====================
@@ -82,6 +74,15 @@ class PurchaseResponse(BaseModel):
 def get_db_connection():
     """データベース接続のコンテキストマネージャ"""
     conn = None
+    
+    # 環境変数の検証（実行時）
+    if not all([Config.DB_HOST, Config.DB_USER, Config.DB_PASSWORD, Config.DB_NAME]):
+        print("[エラー] データベース環境変数が設定されていません")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="データベース設定が不完全です"
+        )
+    
     try:
         conn = pymysql.connect(
             host=Config.DB_HOST,
@@ -108,8 +109,6 @@ def get_db_connection():
 
 
 # ==================== FastAPI Application ====================
-Config.validate()
-
 app = FastAPI(
     title="POS System API",
     version="2.0.0",
@@ -133,7 +132,8 @@ def health_check():
         "status": "healthy",
         "service": "POS System API",
         "version": "2.0.0",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "db_configured": bool(Config.DB_HOST and Config.DB_USER)
     }
 
 
@@ -261,6 +261,7 @@ def purchase(request: PurchaseRequest):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
+    print(f"[起動] ポート {port} でサーバーを起動します")
     uvicorn.run(
         app,
         host="0.0.0.0",
